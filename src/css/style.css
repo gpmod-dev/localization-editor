@@ -15,9 +15,6 @@
   align-items: center;
   position: fixed;
   inset: 0;
-  font-family: sans-serif;
-  font-size: 40px;
-  user-select: none;
   animation: fade-in 0.4s ease-in;
 }
 
@@ -32,6 +29,31 @@
 }
 
 .drag-n-drop-notice.hidden {
+  display: none;
+}
+
+.drag-n-drop-notice .wrapper {
+  font-family: sans-serif;
+  font-size: 24px;
+  user-select: none;
+  padding: 180px;
+  background-color: #f8f9fa;
+  border: 1px dashed #c0c0c0;
+  border-radius: 8px;
+  color: #5f6368;
+}
+
+.select-files {
+  color: #1967d2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.select-files:hover {
+  text-decoration: underline;
+}
+
+.select-files-input {
   display: none;
 }
 

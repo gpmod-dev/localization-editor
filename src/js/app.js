@@ -8,11 +8,24 @@ const LANG_SORT_ORDER = {
   'ru': 1, 'en': 2, 'es': 3
 }
 
+const JSON_TYPE = 'application/json'
+
 const SAVE_DELAY = 1000
 
 const translator = new Translator()
 
 const dragAndDropNotice = document.querySelector('.drag-n-drop-notice')
+
+const selectFileInput = document.createElement('input')
+selectFileInput.type = 'file'
+selectFileInput.accept = JSON_TYPE
+selectFileInput.toggleAttribute('multiple', true)
+selectFileInput.addEventListener('change', handleFiles)
+
+const selectFilesLink = document.querySelector('.select-files')
+selectFilesLink.addEventListener('click', (e) => {
+  selectFileInput.click()
+})
 
 const popup = document.querySelector('.module-popup')
 popup.addEventListener('wheel', preventDefault)
@@ -49,7 +62,7 @@ document.addEventListener('keydown', (e) => {
         const filename = `${l.lang}.json`
         const data = JSON.stringify(l.data, null, 4)
         const file = new File(
-          [data], filename, { type: 'application/json' }
+          [data], filename, { type: JSON_TYPE }
         )
         zip.file(file.name, file)
       })
@@ -334,7 +347,7 @@ function handleFiles(e) {
   if (!files?.length) return
 
   files = Array.from(files).filter((f) => (
-    f.type === 'application/json' &&
+    f.type === JSON_TYPE &&
     LOCALIZATION_PRESETS[f.name.slice(0, -5)]
   ))
 
