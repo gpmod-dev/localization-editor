@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GP Localization Editor</title>
+
+  <link rel="stylesheet" href="src/css/style.css">
+
+  <script defer src="vendor/FileSaver.min.js"></script>
+  <script defer src="vendor/jszip.min.js"></script>
+
+  <script defer src="src/js/translator.js"></script>
+  <script defer src="src/js/app.js"></script>
+</head>
+
+<body>
+  <div class="drag-n-drop-notice">Drag JSON files here.</div>
+  <div class="localization-entries"></div>
+  <div class="translation-tooltip hidden">
+    <div class="content"></div>
+    <div class="copy-btn" title="Copy to clipboard"></div>
+  </div>
+  <div class="module-popup hidden"></div>
+</body>
+
+</html>
