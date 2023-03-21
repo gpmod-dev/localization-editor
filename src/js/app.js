@@ -12,6 +12,11 @@ const JSON_TYPE = 'application/json'
 
 const SAVE_DELAY = 1000
 
+let l10n = []
+let l10nMap = {}
+let saveTimer
+let isTranslationTooltipShown = false
+
 const translator = new Translator()
 
 const dragAndDropNotice = document.querySelector('.drag-n-drop-notice')
@@ -40,16 +45,19 @@ list.addEventListener('click', translateClickHandler)
 list.addEventListener('click', moduleFoldingHandler)
 list.addEventListener('input', entryChangeHandler)
 
+const filterInput = document.querySelector('.filter-input')
+filterInput.addEventListener('change', (e) => {
+  document.documentElement.style.setProperty('--filter-display', filterInput.checked ? 'none' : 'contents')
+  document.documentElement.classList.toggle('scrollbar', hasScrollbar())
+})
+
+const filterBtn = document.querySelector('.filter-btn')
+
 document.documentElement.addEventListener('drop', handleFiles, true)
 document.documentElement.addEventListener('dragover', (e) => {
   e.preventDefault()
   e.dataTransfer.dropEffect = 'move'
 }, true)
-
-let l10n = []
-let l10nMap = {}
-let saveTimer
-let isTranslationTooltipShown = false
 
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.code === 'KeyS') {
@@ -76,6 +84,13 @@ document.addEventListener('keydown', (e) => {
   else if (e.code === 'Escape' && !popup.classList.contains('hidden')) {
     e.preventDefault()
     popup.classList.add('hidden')
+  }
+  else if (
+    (e.code === 'Enter' || e.code === 'NumpadEnter')
+    && !e.shiftKey
+  ) {
+    e.preventDefault()
+    document.execCommand('insertLineBreak')
   }
 })
 
@@ -116,6 +131,9 @@ Object.entries(localStorage).forEach(([lang, value]) => {
 
 function render(l10n) {
   dragAndDropNotice.classList.add('hidden')
+  filterBtn.classList.remove('hidden')
+  document.documentElement.style.setProperty('--filter-display', 'contents')
+
   list.innerHTML = ''
 
   const map = new Map()
@@ -145,6 +163,8 @@ function render(l10n) {
     entriesElem.className = 'entries'
     moduleElem.appendChild(entriesElem)
 
+    let isIncompleteModule = false
+
     entries.forEach((entryName) => {
       const isTitle = entryName.toLowerCase().endsWith('_ttl')
 
@@ -162,6 +182,8 @@ function render(l10n) {
       translationElem.className = 'translations'
       entryElem.appendChild(translationElem)
 
+      let isIncompleteEntry = false
+
       l10n.forEach(({ lang, data }) => {
         const t = data[moduleName]?.[entryName] ?? ''
 
@@ -176,7 +198,7 @@ function render(l10n) {
 
         const translation = document.createElement('div')
         translation.className = 'translation'
-        translation.textContent = t
+        translation.innerText = t
         translation.setAttribute('contenteditable', 'true')
         translationEntry.appendChild(translation)
 
@@ -198,7 +220,16 @@ function render(l10n) {
         })
 
         translationElem.appendChild(translationEntry)
+
+        if (!t) {
+          isIncompleteEntry = true
+          isIncompleteModule = true
+        }
       })
+
+      if (isIncompleteEntry) {
+        entryElem.classList.add('incomplete')
+      }
 
       const preview = document.createElement('div')
       preview.className = 'preview-btn'
@@ -210,10 +241,20 @@ function render(l10n) {
       entriesElem.appendChild(entryElem)
     })
 
+    if (isIncompleteModule) {
+      moduleElem.classList.add('incomplete')
+    }
+
+    const moduleFooter = document.createElement('div')
+    moduleFooter.className = 'module-footer'
+    moduleElem.appendChild(moduleFooter)
+
     list.appendChild(moduleElem)
   })
 
   list.appendChild(frag)
+
+  document.documentElement.classList.toggle('scrollbar', hasScrollbar())
 }
 
 function formatModuleName(moduleName) {
@@ -224,20 +265,18 @@ function formatModuleName(moduleName) {
 }
 
 function entryChangeHandler(e) {
-  console.log(e.target.textContent)
-
   clearTimeout(saveTimer)
 
   const lang = e.target.parentElement.dataset.lang
   const moduleName = e.target.parentElement.parentElement.parentElement.parentElement.parentElement.dataset.name
   const entryName = e.target.parentElement.parentElement.parentElement.dataset.name
-  console.log(lang, moduleName, entryName)
+  // console.log(lang, moduleName, entryName)
 
   if (!l10nMap[lang][moduleName]) {
     l10nMap[lang][moduleName] = {}
   }
 
-  l10nMap[lang][moduleName][entryName] = e.target.textContent
+  l10nMap[lang][moduleName][entryName] = e.target.innerText
 
   saveTimer = setTimeout(() => {
     localStorage.setItem(lang, JSON.stringify(l10nMap[lang]))
@@ -319,12 +358,12 @@ function showTranslationTooltip(text, btn) {
 }
 
 function setTranslationTooltipText(text) {
-  translationTooltip.firstElementChild.textContent = text
+  translationTooltip.firstElementChild.innerText = text
 }
 
 function copyBtnClickHandler(e) {
   if (e.target.className !== 'copy-btn') return
-  const text = e.target.previousElementSibling.textContent.trim()
+  const text = e.target.previousElementSibling.innerText.trim()
   if (text) {
     navigator.clipboard.writeText(text)
   }
@@ -406,4 +445,8 @@ function preventDefault(e) {
 
 function clickPopupHandler(e) {
   e.currentTarget.classList.add('hidden')
+}
+
+function hasScrollbar() {
+  return document.documentElement.scrollHeight > document.documentElement.clientHeight
 }
