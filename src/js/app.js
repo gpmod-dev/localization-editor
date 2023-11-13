@@ -9,6 +9,8 @@ const LANG_SORT_ORDER = {
 }
 
 const JSON_TYPE = 'application/json'
+const ZIP_TYPE = 'application/x-zip-compressed'
+const ACCEPTED_FILE_TYPES = [JSON_TYPE, ZIP_TYPE]
 
 const SAVE_DELAY = 1000
 
@@ -23,7 +25,7 @@ const dragAndDropNotice = document.querySelector('.drag-n-drop-notice')
 
 const selectFileInput = document.createElement('input')
 selectFileInput.type = 'file'
-selectFileInput.accept = JSON_TYPE
+selectFileInput.accept = ACCEPTED_FILE_TYPES.join(',')
 selectFileInput.toggleAttribute('multiple', true)
 selectFileInput.addEventListener('change', handleFiles)
 
@@ -200,6 +202,8 @@ function render(l10n) {
         translation.className = 'translation'
         translation.innerText = t
         translation.setAttribute('contenteditable', 'true')
+        translation.setAttribute('spellcheck', 'true')
+        translation.setAttribute('lang', lang)
         translationEntry.appendChild(translation)
 
         const translate = document.createElement('div')
@@ -379,16 +383,50 @@ function copyBtnClickHandler(e) {
 //   )
 // }
 
-function handleFiles(e) {
+function readZipFiles(zipFile) {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.addEventListener('loadend', (e) => {
+      try {
+        const zip = new JSZip()
+        zip.loadAsync(reader.result).then((zip) => {
+          const filesPs = Object.values(zip.files).map((file) => {
+            const type = (file.name.split('.').at(-1) === 'json') ?
+              JSON_TYPE : ''
+            const lastModified = file.date.getTime()
+            return file.async('arraybuffer').then((buffer) =>
+              new File([buffer], file.name, { type, lastModified })
+            )
+          })
+
+          Promise.all(filesPs).then(resolve)
+        })
+      } catch (err) {
+        reject(new Error('Zip Files Read Error'))
+      }
+    })
+    reader.readAsArrayBuffer(zipFile)
+  })
+}
+
+async function handleFiles(e) {
   e.preventDefault()
 
-  let files = e.target.files || e.dataTransfer.files
+  let files = Array.from(e.target.files || e.dataTransfer.files)
   if (!files?.length) return
+
+  for (let file of files) {
+    if (file.type === ZIP_TYPE) {
+      files.push(...await readZipFiles(file))
+    }
+  }
 
   files = Array.from(files).filter((f) => (
     f.type === JSON_TYPE &&
     LOCALIZATION_PRESETS[f.name.slice(0, -5)]
   ))
+
+  files.sort((a, b) => a - b)
 
   if (files.length) {
     Promise.all(
@@ -401,7 +439,7 @@ function handleFiles(e) {
             try {
               resolve({ lang, data: JSON.parse(reader.result) })
             } catch (err) {
-              console.error('JSON load error')
+              console.error('JSON Load Error')
             }
           })
           reader.readAsText(file)
